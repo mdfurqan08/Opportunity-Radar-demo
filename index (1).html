@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Opportunity Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0b2a33;--muted:#4d6a72;--paper:#eef4f5;--card:#fff;--line:#cfdfe2;--water:#1c7c8c;--amber:#c9740a;--amberbg:#fdf0dc;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e6f1f3;--muted:#9bb7bd;--paper:#0a1c21;--card:#112a31;--line:#1f4048;--water:#4cc3d4;--amber:#f2b04e;--amberbg:#33260f}}
+*{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,Arial,sans-serif;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;margin:0 0 6px;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0 0 6px;max-width:60ch}
+.tag{display:inline-block;font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+@media(max-width:780px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+label{display:block;font-size:14px;font-weight:600;margin:0 0 4px}
+input,select{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);margin-bottom:12px}
+button{font:inherit;font-weight:600;width:100%;padding:11px;border:0;border-radius:6px;background:var(--water);color:#fff;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.lane{padding:10px 0;border-bottom:1px solid var(--line)}
+.lane:last-child{border:0}
+.lane b{font-size:15px}
+.state{float:right;font-size:13px;color:var(--muted)}
+.bar{height:5px;background:var(--line);border-radius:3px;margin:7px 0 5px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--water);transition:width .5s}
+.log{font-size:13px;color:var(--muted);min-height:19px}
+.sum{display:flex;justify-content:space-between;align-items:baseline;margin:20px 0 8px}
+.sum h2{font-size:20px;margin:0}
+.sum span{font-size:13px;color:var(--muted)}
+.res{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;animation:in .4s}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.res{animation:none}.bar i{transition:none}}
+.score{font-size:22px;font-weight:800;color:var(--water);text-align:center;line-height:1}
+.score small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+.res h3{margin:0;font-size:16px}
+.meta{font-size:13px;color:var(--muted)}
+.due{font-size:13px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--paper);white-space:nowrap}
+.due.urgent{background:var(--amberbg);color:var(--amber)}
+.note{font-size:12px;color:var(--muted);margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Opportunity Radar</h1>
+  <p class="sub">Tell us your branch and skills. AI web agents check live portals for you and bring back what fits, with deadlines.</p>
+  <span class="tag">Demo mode: agents are simulated, listings are sample data</span>
+  <div class="grid">
+    <div class="panel">
+      <label for="branch">Branch</label>
+      <select id="branch"><option>Computer Science</option><option>Electronics</option><option>Mechanical</option><option>Civil</option></select>
+      <label for="skills">Skills (comma separated)</label>
+      <input id="skills" value="React, Python, Firebase">
+      <label for="year">Year</label>
+      <select id="year"><option>1st year</option><option>2nd year</option><option>3rd year</option><option>4th year</option></select>
+      <button id="go">Run agents</button>
+    </div>
+    <div>
+      <div class="panel" id="lanes"></div>
+      <div class="sum" id="sum" hidden><h2>Best matches for you</h2><span id="count"></span></div>
+      <div id="out"></div>
+    </div>
+  </div>
+  <p class="note">Built for Swim with TinyFish. In the live version each lane is one TinyFish web agent that browses a real portal and returns structured data.</p>
+</div>
+<script>
+var lanes=[
+ {n:"Internship portals",steps:["Opening listings page","Filtering by your skills","Reading 24 postings","Extracting title, stipend, deadline"]},
+ {n:"Hackathon listings",steps:["Opening events page","Filtering to Bengaluru and online","Reading 18 events","Extracting prize and deadline"]},
+ {n:"Scholarship boards",steps:["Opening scholarship search","Applying year and branch filter","Reading 11 schemes","Extracting eligibility and deadline"]},
+ {n:"College notice pages",steps:["Opening notices page","Looking for new circulars","Reading 9 notices","Extracting dates"]}
+];
+var data=[
+ {t:"Frontend Developer Intern",o:"Startup, Bengaluru",ty:"Internship",tags:["react","javascript","css"],d:6,l:0},
+ {t:"Python Automation Intern",o:"Fintech company",ty:"Internship",tags:["python","api"],d:12,l:0},
+ {t:"Backend Intern (Firebase)",o:"Edtech startup",ty:"Internship",tags:["firebase","javascript","api"],d:3,l:0},
+ {t:"Web Agents Build Day",o:"Campus hackathon",ty:"Hackathon",tags:["python","react","api","ai"],d:2,l:1},
+ {t:"Open Source Sprint",o:"Online, 48 hours",ty:"Hackathon",tags:["javascript","python","git"],d:9,l:1},
+ {t:"Women in Tech Hack",o:"Bengaluru",ty:"Hackathon",tags:["react","ai"],d:14,l:1},
+ {t:"Merit Scholarship for Engineering",o:"State board",ty:"Scholarship",tags:["engineering","computer science"],d:5,l:2},
+ {t:"Tech Talent Grant",o:"Industry foundation",ty:"Scholarship",tags:["computer science","python"],d:21,l:2},
+ {t:"First-Year Skill Fellowship",o:"University fund",ty:"Scholarship",tags:["1st year","computer science"],d:8,l:2},
+ {t:"Industry Readiness Workshop",o:"Your university",ty:"Notice",tags:["1st year","computer science"],d:4,l:3},
+ {t:"Lab Test Schedule Update",o:"Your department",ty:"Notice",tags:["computer science","python"],d:1,l:3}
+];
+var go=document.getElementById("go"),lanesEl=document.getElementById("lanes"),out=document.getElementById("out"),sum=document.getElementById("sum");
+function drawLanes(){lanesEl.innerHTML=lanes.map(function(x,i){return '<div class="lane"><b>'+x.n+'</b><span class="state" id="s'+i+'">Waiting</span><div class="bar"><i id="b'+i+'"></i></div><div class="log" id="g'+i+'">Ready</div></div>'}).join("")}
+drawLanes();
+function score(it,p){var s=40,h=0;it.tags.forEach(function(t){if(p.indexOf(t)>-1)h++});s+=h*17;if(p.indexOf("1st year")>-1&&it.tags.indexOf("1st year")>-1)s+=10;return Math.min(98,s)}
+function show(){
+ var p=document.getElementById("skills").value.toLowerCase().split(",").map(function(x){return x.trim()}).filter(Boolean);
+ p.push(document.getElementById("branch").value.toLowerCase(),document.getElementById("year").value.toLowerCase());
+ var r=data.map(function(it){return {it:it,s:score(it,p)}}).sort(function(a,b){return b.s-a.s||a.it.d-b.it.d}).slice(0,7);
+ out.innerHTML=r.map(function(x){var u=x.it.d<=5;return '<div class="res"><div class="score">'+x.s+'<small>match</small></div><div><h3>'+x.it.t+'</h3><div class="meta">'+x.it.ty+' · '+x.it.o+' · found by '+lanes[x.it.l].n+'</div></div><span class="due'+(u?' urgent':'')+'">Closes in '+x.it.d+' days</span></div>'}).join("");
+ sum.hidden=false;document.getElementById("count").textContent=r.length+" of "+data.length+" opportunities";
+}
+function runLane(i,delay,done){
+ var L=lanes[i],st=document.getElementById("s"+i),b=document.getElementById("b"+i),g=document.getElementById("g"+i),k=0;
+ st.textContent="Working";b.style.width="5%";
+ (function step(){
+  setTimeout(function(){
+   if(k<L.steps.length){g.textContent=L.steps[k];k++;b.style.width=(k/L.steps.length*100)+"%";step()}
+   else{st.textContent="Done";g.textContent="Returned structured results";done()}
+  },delay+Math.random()*500);
+ })();
+}
+go.addEventListener("click",function(){
+ go.disabled=true;go.textContent="Agents running…";out.innerHTML="";sum.hidden=true;drawLanes();
+ var left=lanes.length;
+ lanes.forEach(function(_,i){runLane(i,500+i*250,function(){left--;if(left===0){show();go.disabled=false;go.textContent="Run agents again"}})});
+});
+</script>
+</body>
+</html>
